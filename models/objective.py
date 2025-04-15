@@ -1,4 +1,4 @@
-from objective_type import ObjectiveType
+from models.objective_type import ObjectiveType
 
 
 class Objective:
