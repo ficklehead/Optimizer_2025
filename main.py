@@ -13,6 +13,11 @@ my_task.objective = Objective('mass', ObjectiveType.MIN,[])
 my_task.constraints.append(Constraint('stress', 220e6, None, []))
 my_task.design_variables.append((DesignVariable('radius_a', 0.9, 0.1, 0.1, [])))
 my_task.design_variables.append((DesignVariable('radius_b', 0.9, 0.1, 0.1, [])))
+my_task.solver_path = 'D:\\ANSYS24_DOWNLOAD\\ANSYS Inc\\v242\\ANSYS\\bin\\winx64\\ANSYS242.exe'
+my_task.work_path = 'D:\\POLITECH_2025\\Optimization'
+my_task.solver_script = 'kirsh'
+my_task.results_path = 'D:\\POLITECH_2025\\Optimization\\results.txt'
+
 
 optimizer = Optimizer()
 optimizer.optimize(my_task)
