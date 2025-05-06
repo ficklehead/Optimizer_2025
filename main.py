@@ -8,9 +8,10 @@ from models.constraint import Constraint
 
 my_task = OptimizationTask()
 my_task.cae_models = "D:\\POLITECH_2025\\Optimization\\kirsh.txt"
-my_task.config = OptimizationConfig(10, 0.5, 0.5, 20, 0.001)
-my_task.objective = Objective('mass', ObjectiveType.MIN,[])
-my_task.constraints.append(Constraint('stress', 220e6, None, []))
+my_task.config = OptimizationConfig(3, 0.5, 0.5, 20, 0.001)
+my_task.objective = Objective('area', ObjectiveType.MIN,[])
+my_task.constraints.append(Constraint('stress', 3e3, None, []))
+my_task.constraints.append(Constraint('area', 2.5, None, []))
 my_task.design_variables.append((DesignVariable('radius_a', 0.9, 0.1, 0.1, [])))
 my_task.design_variables.append((DesignVariable('radius_b', 0.9, 0.1, 0.1, [])))
 my_task.solver_path = 'D:\\ANSYS24_DOWNLOAD\\ANSYS Inc\\v242\\ANSYS\\bin\\winx64\\ANSYS242.exe'

@@ -11,15 +11,14 @@ class Optimizer:
         population = self.generate_initial_population(ot)
         population_results =  self.calculate_dresps(ot, population)
 
-
         for i in range(ot.config.max_iteration):
             children = self.crossbending(population, ot)
-            self.mutation(children, ot)
-            children_results = self.calculate_dresps(ot, children)
-            population, results = self.selection(ot, population, population_results, children, children_results)
+            mutated_children = self.mutation(children, ot)
+            children_results = self.calculate_dresps(ot, mutated_children)
+            population, population_results = self.selection(ot, population, population_results, children, children_results)
 
             #self.check_convergence(ot)
-            ot.objective.values.append(results[0])
+            ot.objective.values.append(population_results[0])
             #self.plot_results(ot)
         print(ot.objective.values)
 
@@ -38,6 +37,7 @@ class Optimizer:
 
 
     def mutation(self, children, ot: OptimizationTask):
+        mutated_children = []
         for child in children:
             mutation1 = (-1 + np.random.rand() * 2) * 0.1
             mutation2 = (-1 + np.random.rand() * 2) * 0.1
@@ -50,11 +50,20 @@ class Optimizer:
                 child[1] = ot.design_variables[1].lower_bound
             if child[1] > ot.design_variables[1].upper_bound:
                 child[1] = ot.design_variables[1].upper_bound
+            mutated_children.append(child)
+        return np.array(mutated_children)
 
     def selection(self, ot: OptimizationTask, population, population_results, children, children_results):
-        results = np.concatenate((children_results.T, population_results.T))
-        index_array = np.argsort(results)
+        results = np.concatenate((children_results.T, population_results.T), axis = 1).T
         population = np.concatenate((children.T, population.T), axis = 1)
+        temp_results = results
+        for i in range(len(ot.constraints)):
+            temp_results[:, i+1] = temp_results[:, i+1] - ot.constraints[i].upper_bound
+        temp_results = np.where(temp_results <=0, 0, temp_results*10000)
+        objective = np.zeros(ot.config.population_size)
+        for i in range(len(ot.constraints)):
+            objective = objective + temp_results[:, i+1]
+        index_array = np.argsort(objective)
         sorted_population = population.T[index_array]
         sorted_results = results.T[index_array]
         return sorted_population[0:ot.config.population_size], sorted_results[0:ot.config.population_size]
@@ -75,13 +84,15 @@ class Optimizer:
             f.writelines(lines)
 
     def calculate_dresps(self, ot: OptimizationTask, population):
-        results = np.zeros(ot.config.population_size)
+        results = np.zeros((ot.config.population_size, 1+len(ot.constraints)))
         i = 0
         for individual in population:
             self.change_input(individual, ot)
             ansys.runAPDL(ot.solver_path, ot.work_path, ot.solver_script)
             with open(ot.results_path, encoding='utf-8') as f:
                 lines = f.readlines()
-            results[i] = lines[0]
+            results[i, 0] = lines[0]
+            results[i, 1] = lines[1]
+            results[i, 2] = lines[0]
             i += 1
         return results
