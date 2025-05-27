@@ -10,21 +10,38 @@ class Optimizer:
     def optimize(self, ot: OptimizationTask):
         population = self.generate_initial_population(ot)
         population_results =  self.calculate_dresps(ot, population)
+        best_individ = population[0, :]
+        best_individ_res = population_results[0, :]
 
         for i in range(ot.config.max_iteration):
             children = self.crossbending(population, ot)
             mutated_children = self.mutation(children, ot)
             children_results = self.calculate_dresps(ot, mutated_children)
             population, population_results = self.selection(ot, population, population_results, children, children_results)
-
-            #self.check_convergence(ot)
-            ot.objective.values.append(population_results[0])
-            #self.plot_results(ot)
-        print(ot.objective.values)
+            current_best = population[0, :]
+            current_best_res = population_results[0, :]
+            if best_individ_res[0] > current_best_res[0]:
+                best_individ = current_best
+                best_individ_res = current_best_res
+            else:
+               population[1,:] = best_individ
+               population_results[1, :] = best_individ_res
+            ot.objective.values.append(best_individ_res[0])
+            ot.constraints[0].values.append(best_individ_res[1])
+            ot.constraints[1].values.append(best_individ_res[2])
+            print("Parameters: ", best_individ)
+            print("objective: ", ot.objective.values[i])
+            print("Umax: ", ot.constraints[0].values[i])
+            print("Smax [e9]:", ot.constraints[1].values[i])
 
     def generate_initial_population(self, ot: OptimizationTask):
         num_pars = len(ot.design_variables)
         individuals = np.random.rand(ot.config.population_size, num_pars)
+        for i in range(num_pars):
+            lb = ot.design_variables[i].lower_bound
+            ub = ot.design_variables[i].upper_bound
+            individuals[i, :] = lb + individuals[i, :] * (ub - lb)
+        individuals = individuals[:]
         return individuals
 
     def crossbending(self, population, ot: OptimizationTask):
@@ -56,16 +73,16 @@ class Optimizer:
     def selection(self, ot: OptimizationTask, population, population_results, children, children_results):
         results = np.concatenate((children_results.T, population_results.T), axis = 1).T
         population = np.concatenate((children.T, population.T), axis = 1)
-        temp_results = results
+        temp_results = results.copy()
         for i in range(len(ot.constraints)):
             temp_results[:, i+1] = temp_results[:, i+1] - ot.constraints[i].upper_bound
         temp_results = np.where(temp_results <=0, 0, temp_results*10000)
-        objective = np.zeros(ot.config.population_size)
+        objective = np.zeros(ot.config.population_size*2)
         for i in range(len(ot.constraints)):
             objective = objective + temp_results[:, i+1]
         index_array = np.argsort(objective)
-        sorted_population = population.T[index_array]
-        sorted_results = results.T[index_array]
+        sorted_population = population.T[index_array,:]
+        sorted_results = results[index_array,:]
         return sorted_population[0:ot.config.population_size], sorted_results[0:ot.config.population_size]
 
 
@@ -93,6 +110,6 @@ class Optimizer:
                 lines = f.readlines()
             results[i, 0] = lines[0]
             results[i, 1] = lines[1]
-            results[i, 2] = lines[0]
+            results[i, 2] = lines[2]
             i += 1
         return results

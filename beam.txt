@@ -1,0 +1,76 @@
+a=0.2562511508988805
+b=0.8228184286576122
+l1=0.5
+l=1
+E=2.1e11
+nu=0.3
+es=0.05
+force=-100
+
+/prep7
+k,1,
+k,2,l1
+k,3,l
+lstr,1,2
+lstr,2,3
+
+mp,ex,1,E
+mp,prxy,1,nu
+
+et,1,beam188
+
+SECTYPE,   1, BEAM, CSOLID, , 0 
+SECOFFSET, CENT 
+SECDATA,a,5,5,0,0,0,0,0,0,0,0,
+
+SECTYPE,   2, BEAM, CSOLID, , 0 
+SECOFFSET, CENT 
+SECDATA,b,5,5,0,0,0,0,0,0,0,0,
+
+lsel,,line,,1
+latt,,,,,,,1
+
+lsel,,line,,2
+latt,,,,,,,2
+
+allsel,all
+lesize,all,es
+lmesh,all
+/eshape,1
+
+/sol
+nsel,,loc,x,-0.001*l,0.001*l
+n1=ndnext(0)
+d,all,all,0
+nsel,,loc,x,l-0.001*l,l+0.001*l
+n2=ndnext(0)
+
+f,all,fy,force
+allsel,all
+
+solve
+
+/post1
+
+set,last
+
+*get,umax,node,n2,u,y
+
+nsort,u,y
+*get,umax,sort,0,min
+
+
+AVPRIN,0,nu,   
+ETABLE,my_etable,ls, 4
+*GET,smax,ELEM,n2-1,ETAB,my_etable 
+
+
+area=atan(1)*a*a + atan(1)*b*b
+
+smax=smax*1e-9
+umax=umax*(-1)
+
+*cfopen,results.txt
+*vwrite,area,umax,smax
+(f12.10),(f12.10),(f12.10)
+*cfclose
